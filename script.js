@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SiteAI — script.js
+   Wallora Tech — script.js
    Nenhuma automação real de criação de sites e nenhum envio para servidor
    nesta versão. Apenas comportamento de interface.
    ========================================================================== */

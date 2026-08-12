@@ -1,7 +1,6 @@
 /* ==========================================================================
    Wallora Tech — script.js
-   Nenhuma automação real de criação de sites e nenhum envio para servidor
-   nesta versão. Apenas comportamento de interface.
+   Nenhuma automação real de criação de sites. Apenas comportamento de interface.
    ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -46,7 +45,6 @@ document.addEventListener('DOMContentLoaded', function () {
     navToggle.setAttribute('aria-expanded', String(isOpen));
   });
 
-  // Fecha o menu automaticamente ao clicar em um link (útil no celular)
   nav.querySelectorAll('a').forEach(function (link) {
     link.addEventListener('click', closeNav);
   });
@@ -68,13 +66,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     revealEls.forEach(function (el) { revealObserver.observe(el); });
   } else {
-    // Sem suporte a IntersectionObserver: mostra tudo direto
     revealEls.forEach(function (el) { el.classList.add('is-visible'); });
   }
 
   /* ------------------------------------------------------------------
-     5. Badge da demonstração do hero: alterna nomes fictícios de negócios
-     (reforça a identidade "IA construindo o site", sem nenhuma automação real)
+     5. Badge da demonstração do hero
      ------------------------------------------------------------------ */
   var aiBadgeText = document.getElementById('aiBadgeText');
   var exampleBusinesses = [
@@ -103,12 +99,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
   /* ------------------------------------------------------------------
      6. Formulário "Solicite seu site"
-     Validação simples no navegador + mensagem de sucesso.
-     NÃO envia dados para nenhum servidor nesta versão.
+     Validação no navegador + envio real para o Formspree via fetch().
      ------------------------------------------------------------------ */
   var form = document.getElementById('requestForm');
   var successMessage = document.getElementById('successMessage');
   var newRequestBtn = document.getElementById('newRequestBtn');
+  var formError = document.getElementById('formError');
+  var submitBtn = form ? form.querySelector('button[type="submit"], input[type="submit"]') : null;
+
+  var FORMSPREE_ENDPOINT = 'https://formspree.io/f/xljrngzr';
 
   function validateField(field) {
     var wrapper = field.closest('.field');
@@ -119,8 +118,26 @@ document.addEventListener('DOMContentLoaded', function () {
     return isValid;
   }
 
+  function hideFormError() {
+    if (formError) {
+      formError.classList.remove('is-visible');
+    }
+  }
+
+  function showFormError() {
+    if (formError) {
+      formError.classList.add('is-visible');
+      formError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  function setSubmitting(isSubmitting) {
+    if (!submitBtn) return;
+    submitBtn.disabled = isSubmitting;
+    submitBtn.classList.toggle('is-loading', isSubmitting);
+  }
+
   if (form) {
-    // Valida um campo assim que o usuário sai dele
     form.querySelectorAll('input, select, textarea').forEach(function (field) {
       field.addEventListener('blur', function () { validateField(field); });
       field.addEventListener('input', function () {
@@ -133,6 +150,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     form.addEventListener('submit', function (event) {
       event.preventDefault();
+      hideFormError();
 
       var requiredFields = form.querySelectorAll('[required]');
       var allValid = true;
@@ -144,7 +162,6 @@ document.addEventListener('DOMContentLoaded', function () {
       });
 
       if (!allValid) {
-        // Rola até o primeiro campo com erro
         var firstError = form.querySelector('.field.has-error');
         if (firstError) {
           firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -152,21 +169,36 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
 
-      // Nesta versão apenas simulamos o envio (sem backend/API).
-      // Os dados do formulário ficam disponíveis aqui caso queira
-      // inspecioná-los ou conectar a um serviço futuramente:
       var formData = new FormData(form);
-      var dadosDoFormulario = Object.fromEntries(formData.entries());
-      console.log('Solicitação de site (simulada):', dadosDoFormulario);
+      setSubmitting(true);
 
-      // Mostra a mensagem de sucesso e esconde o formulário
-      form.style.display = 'none';
-      successMessage.classList.add('is-visible');
-      successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      fetch(FORMSPREE_ENDPOINT, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Accept': 'application/json'
+        }
+      })
+        .then(function (response) {
+          if (response.ok) {
+            form.style.display = 'none';
+            successMessage.classList.add('is-visible');
+            successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          } else {
+            return response.json().then(function () {
+              showFormError();
+            });
+          }
+        })
+        .catch(function () {
+          showFormError();
+        })
+        .finally(function () {
+          setSubmitting(false);
+        });
     });
   }
 
-  // Botão "Enviar outra solicitação": limpa o formulário e mostra ele de novo
   if (newRequestBtn) {
     newRequestBtn.addEventListener('click', function () {
       form.reset();
@@ -174,11 +206,11 @@ document.addEventListener('DOMContentLoaded', function () {
         wrapper.classList.remove('has-error');
       });
 
+      hideFormError();
       successMessage.classList.remove('is-visible');
       form.style.display = '';
       form.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
   }
 
-});
-                                   
+}); 
